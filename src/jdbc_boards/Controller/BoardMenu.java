@@ -2,13 +2,10 @@ package jdbc_boards.Controller;
 
 import jdbc_boards.model.BoardDAO;
 import jdbc_boards.vo.Board;
-import util.DBUtil;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.sql.Connection;
-import java.util.ArrayList;
 import java.util.List;
 
 public class BoardMenu {
@@ -23,10 +20,10 @@ public class BoardMenu {
 
     public void boardMenu() throws IOException {
         System.out.println("""
-                메인 메뉴
-                1. 글 생성 | 2. 전체 글 읽어오기 | 3. 글 번호를 지정하여 읽어오기
-                4. 글 수정 | 5. 글 삭제 | 0. 종료 \s
-               \s""");
+                 메인 메뉴
+                 1. 글 생성 | 2. 전체 글 읽어오기 | 3. 글 번호를 지정하여 읽어오기
+                 4. 글 수정 | 5. 글 삭제 | 0. 종료 \s
+                \s""");
         System.out.println("메뉴 선택: ");
         int choice = 0;
         try {
@@ -51,9 +48,22 @@ public class BoardMenu {
                 }
                 break;
 
-                // 2. 전체 글 읽어오기
+            // 2. 전체 글 읽어오기
             case 2:
-
+                boardDataRead();
+                break;
+            case 3:
+                selectOne(board.getBno());
+                break;
+            case 4:
+                updateBoard(board);
+                break;
+            case 5:
+                deleteBoard(board.getBno());
+                break;
+            case 6:
+                System.out.println("종료 합니다.");
+                break;
         }
 
     }
@@ -79,5 +89,17 @@ public class BoardMenu {
         System.out.println(" 해당글을 읽어옵니다.");
 
         return dao.selectOne(bno);
+    }
+
+    public boolean updateBoard(Board board) {
+        System.out.println("해당 글을 수정합니다.");
+
+        return dao.updateBoard(board);
+    }
+
+    public boolean deleteBoard(int bno) {
+        System.out.println("해당 글을 삭제합니다");
+
+        return dao.deleteBoard(bno);
     }
 }
