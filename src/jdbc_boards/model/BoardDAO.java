@@ -31,24 +31,20 @@ public class BoardDAO {
             preparedStatement.setString(3, board.getBwriter());
 
             int affected = preparedStatement.executeUpdate();
-            boolean flag = affected > 0;
+            boolean ok = affected > 0;
 
-            if (flag) {
-                try (ResultSet resultSet = preparedStatement.getGeneratedKeys()) {
-
-                    if (resultSet.next()) {
-                        int newBno = resultSet.getInt(1);
-                        board.setBno(newBno);
-                        boardList.add(board);
-                    }
+            try (ResultSet resultSet = preparedStatement.getGeneratedKeys()) {
+                if (resultSet.next()) {
+                    int newBno = resultSet.getInt(1);
+                    board.setBno(newBno);
+                    boardList.add(board);
                 }
             }
-            return flag;
+            return ok;
 
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
-
         }
     }
 
@@ -58,13 +54,13 @@ public class BoardDAO {
         String sql = "UPDATE boardTable SET btitle = ?, bcontent = ? WHERE bno = ?";
 
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            ResultSet resultSet = preparedStatement.executeQuery();
+            preparedStatement.setString(1, board.getBtitle());
+            preparedStatement.setString(2, board.getBcontent());
+            preparedStatement.setInt(3, board.getBno());
 
-            if (resultSet.next()) {
-                preparedStatement.setString(1, board.getBtitle());
-                preparedStatement.setString(2, board.getBcontent());
-                preparedStatement.setInt(3, board.getBno());
-
+            int ack = preparedStatement.executeUpdate();
+            if (ack > 0) {
+                return true;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -79,8 +75,11 @@ public class BoardDAO {
         String sql = "DELETE FROM boardTable WHERE bno = ?";
 
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setInt(1, bno);
-
+            preparedStatement.setInt(1, bno); // ? -> 인덱스 값. printf 의 %d 정도라고 생각하기.
+            int ack = preparedStatement.executeUpdate();
+            if (ack > 0) {
+                return true;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -96,22 +95,23 @@ public class BoardDAO {
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
             ResultSet resultSet = preparedStatement.executeQuery();
+            if (resultSet != null) {
+                while (resultSet.next()) {
+                    Board board = new Board();
+                    board.setBno(resultSet.getInt("bno"));
+                    board.setBtitle(resultSet.getString("btitle"));
+                    board.setBcontent(resultSet.getString("bcontent"));
+                    board.setBwriter(resultSet.getString("bwriter"));
+                    board.setBdate(resultSet.getDate("bdate"));
 
-            while (resultSet.next()) {
-                Board board = new Board();
-                board.setBno(resultSet.getInt("bno"));
-                board.setBtitle(resultSet.getString("btitle"));
-                board.setBcontent(resultSet.getString("bcontent"));
-                board.setBwriter(resultSet.getString("bwriter"));
-                board.setBdate(resultSet.getDate("bdate"));
-
-                boardList.add(board);
+                    boardList.add(board);
+                }
             }
+            return boardList;
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
-        return boardList;
+        return null;
     }
 
     // bno 를 인자값 넣어서 Board 반환. -> selectOne
@@ -123,6 +123,7 @@ public class BoardDAO {
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setInt(1, bno);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
+
                 if (resultSet.next()) {
                     Board board = new Board();
                     board.setBno(resultSet.getInt("bno"));
@@ -132,6 +133,7 @@ public class BoardDAO {
                     board.setBdate(resultSet.getDate("bdate"));
                     return board;
                 }
+
             }
         } catch (SQLException e) {
             e.printStackTrace();
