@@ -6,100 +6,197 @@ import jdbc_boards.vo.Board;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Objects;
 
+/**
+ * Board 메뉴
+ * - 1. 글쓰기
+ * - 2. 전체목록
+ * - 3. 상세조회
+ * - 4. 수정
+ * - 5. 삭제
+ * - 0. 종료
+ * *
+ * * BoardMain 에서 new BoardMenu() 만 호출해도 전체 기능이 동작하도록
+ * * 생성자에서 run() 을 바로 실행합니다.
+ */
 public class BoardMenu {
 
-    BoardDAO dao;
-    BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
-    Board board = new Board();
+    private final BoardDAO dao;
+    private final BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public BoardMenu() {
-        dao = new BoardDAO();
+        this.dao = new BoardDAO();
+        run();
     }
 
-    public void boardMenu() throws IOException {
-        System.out.println("""
-                 메인 메뉴
-                 1. 글 생성 | 2. 전체 글 읽어오기 | 3. 글 번호를 지정하여 읽어오기
-                 4. 글 수정 | 5. 글 삭제 | 0. 종료 \s
-                \s""");
-        System.out.println("메뉴 선택: ");
-        int choice = 0;
-        try {
-            choice = Integer.parseInt(input.readLine());
-        } catch (IOException e) {
-            System.out.println("입력도중 에러 발생");
-        } catch (NumberFormatException e1) {
-            System.out.println("숫자만 입력하라니까");
-        } catch (Exception e2) {
-            System.out.println("꿰엑 에라 모르겠다.");
-        }
-        switch (choice) {
-            case 1:
-                //사용자에게 title,content 를 입력받아서 Board 구성하여 createBoard()넘겨주자
-                // 1. 글 생성
-                Board row = boardDataInput();
-                boolean ack = dao.createBoard(row);
-                if (ack == true) System.out.println("글이 성공적으로 입력되었습니다.");
-                else {
-                    System.out.println("입력 실패, 다시 시도 부탁드립니다. ");
-                    //원하는 위치로 이동
+    private void run() {
+        println("\n==== 게시판 ====");
+        while (true) {
+            try {
+                showMenu();
+                String sel = read("메뉴 선택: ");
+                switch (sel) {
+                    case "1" -> write();
+                    case "2" -> list();
+                    case "3" -> view();
+                    case "4" -> edit();
+                    case "5" -> remove();
+                    case "0" -> {
+                        println("종료합니다.");
+                        return;
+                    }
+                    default -> println("메뉴를 다시 선택하세요.");
                 }
-                break;
-
-            // 2. 전체 글 읽어오기
-            case 2:
-                boardDataRead();
-                break;
-            case 3:
-                selectOne(board.getBno());
-                break;
-            case 4:
-                updateBoard(board);
-                break;
-            case 5:
-                deleteBoard(board.getBno());
-                break;
-            case 6:
-                System.out.println("종료 합니다.");
-                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+                println("오류가 발생했습니다: " + e.getMessage());
+            }
         }
-
     }
 
-    public Board boardDataInput() throws IOException {
-        System.out.println("새로운 글 입력");
-        System.out.println("제목 입력");
-        String title = input.readLine();
-        board.setBtitle(title);
-        System.out.println("내용 입력");
-        String content = input.readLine();
-        board.setBcontent(content);
-        return board;
+    private void showMenu() {
+        println("");
+        println("1. 글쓰기");
+        println("2. 전체목록");
+        println("3. 상세조회");
+        println("4. 수정");
+        println("5. 삭제");
+        println("0. 종료");
     }
 
-    public List<Board> boardDataRead() {
-        System.out.println("전체 글을 읽어옵니다.");
+    private void write() throws IOException {
+        println("\n[글쓰기]");
+        Board board = new Board();
+        board.setBtitle(readRequired("제목: "));
+        board.setBcontent(readRequired("내용: "));
+        board.setBwriter(readRequired("작성자: "));
 
-        return dao.selectAll();
+        boolean rows = dao.createBoard(board);
+        if (rows == true) {
+            println("등록 성공! 글번호=" + board.getBno());
+        } else {
+            println("등록 실패");
+        }
     }
 
-    public Board selectOne(int bno) {
-        System.out.println(" 해당글을 읽어옵니다.");
-
-        return dao.selectOne(bno);
+    private void list() {
+        println("\n[전체목록]");
+        List<Board> all = dao.selectAll();
+        if (all == null || all.isEmpty()) {
+            println("(게시물이 없습니다)");
+            return;
+        }
+        println("--------------------------------------------------------------------");
+        println(String.format("%-5s %-20s %-10s %-19s", "번호", "제목", "작성자", "작성일"));
+        println("--------------------------------------------------------------------");
+        for (Board b : all) {
+            String dateStr = b.getBdate() != null ? sdf.format(b.getBdate()) : "";
+            println(String.format("%-5d %-20s %-10s %-19s",
+                    b.getBno(),
+                    trimToLen(b.getBtitle(), 20),
+                    trimToLen(b.getBwriter(), 10),
+                    dateStr));
+        }
+        println("--------------------------------------------------------------------");
     }
 
-    public boolean updateBoard(Board board) {
-        System.out.println("해당 글을 수정합니다.");
-
-        return dao.updateBoard(board);
+    private void view() throws IOException {
+        println("\n[상세조회]");
+        int bno = readInt("글번호: ");
+        Board board = dao.selectOne(bno);
+        if (board == null) {
+            println("해당 글이 없습니다.");
+            return;
+        }
+        println("번호    : " + board.getBno());
+        println("제목    : " + nullSafe(board.getBtitle()));
+        println("작성자  : " + nullSafe(board.getBwriter()));
+        println("작성일  : " + (board.getBdate() != null ? sdf.format(board.getBdate()) : ""));
+        println("내용    : \n" + nullSafe(board.getBcontent()));
     }
 
-    public boolean deleteBoard(int bno) {
-        System.out.println("해당 글을 삭제합니다");
+    private void edit() throws IOException {
+        println("\n[수정]");
+        int bno = readInt("수정할 글번호: ");
+        Board board = dao.selectOne(bno);
+        if (board == null) {
+            println("해당 글이 없습니다.");
+            return;
+        }
+        println("현재 제목: " + nullSafe(board.getBtitle()));
+        String newTitle = read("새 제목(엔터=유지): ");
+        if (!isBlank(newTitle)) board.setBtitle(newTitle);
 
-        return dao.deleteBoard(bno);
+        println("현재 내용: \n" + nullSafe(board.getBcontent()));
+        String newContent = read("새 내용(엔터=유지): ");
+        if (!isBlank(newContent)) board.setBcontent(newContent);
+
+        boolean rows = dao.updateBoard(board);
+        println(rows == true ? "수정 성공" : "수정 실패");
+    }
+
+    private void remove() throws IOException {
+        println("\n[삭제]");
+        int bno = readInt("삭제할 글번호: ");
+        Board board = dao.selectOne(bno);
+        if (board == null) {
+            println("해당 글이 없습니다.");
+            return;
+        }
+        String yn = read("정말 삭제하시겠습니까? (y/N): ");
+        if ("y".equalsIgnoreCase(yn)) {
+            boolean rows = dao.deleteBoard(bno);
+            println(rows == true ? "삭제 성공" : "삭제 실패");
+        } else {
+            println("삭제 취소");
+        }
+    }
+
+    // -------------------- Util function --------------------
+
+    private String read(String prompt) throws IOException {
+        System.out.print(prompt);
+        return in.readLine();
+    }
+
+    private String readRequired(String prompt) throws IOException {
+        while (true) {
+            String s = read(prompt);
+            if (!isBlank(s)) return s.trim();
+            println("값을 입력하세요.");
+        }
+    }
+
+    private int readInt(String prompt) throws IOException {
+        while (true) {
+            try {
+                String s = read(prompt);
+                return Integer.parseInt(s.trim());
+            } catch (NumberFormatException e) {
+                println("숫자를 입력하세요.");
+            }
+        }
+    }
+
+    private void println(String s) {
+        System.out.println(s);
+    }
+
+    private String nullSafe(String s) {
+        return Objects.toString(s, "");
+    }
+
+    private String trimToLen(String s, int len) {
+        if (s == null) return "";
+        if (s.length() <= len) return s;
+        return s.substring(0, len - 1) + "…";
+    }
+
+    private boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
     }
 }
