@@ -22,15 +22,18 @@ import java.util.Objects;
  * * BoardMain 에서 new BoardMenu() 만 호출해도 전체 기능이 동작하도록
  * * 생성자에서 run() 을 바로 실행합니다.
  */
-public class BoardMenu {
+public class BoardMenu {    // 사용자에게 보여지는 보드메뉴
 
+    // BoardDAO 클래스를 참조하는 dao 라는 이름의 필드 변수를 선언
     private final BoardDAO dao;
+    // 사용자 입력 선언
     private final BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+    // 사용자가 원하는 방식으로 날짜 및 시간을 출력하는 포맷 클래스
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public BoardMenu() {
         this.dao = new BoardDAO();
-        run();
+        run();  // 바로 run() 메서드 실행
     }
 
     private void run() {
