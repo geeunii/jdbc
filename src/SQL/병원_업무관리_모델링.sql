@@ -77,7 +77,7 @@ CREATE TABLE chart
     cID      INT  NOT NULL, -- 차트번호
     cDetail  TEXT NOT NULL, -- 환자에 대한 내용
     dOpinion TEXT NOT NULL  -- 의사 소견
-); -- 의사 ID, 간호사 ID, 환자 ID, 진료 ID
+); -- 의사 ID, 간호사 ID, 환자 ID
 ALTER TABLE chart
     ADD COLUMN mtID INTEGER NOT NULL,
     ADD COLUMN dID  INTEGER NOT NULL,
@@ -179,10 +179,10 @@ UPDATE doctor
 SET dCharge = '소아과'
 WHERE dName = '홍길동';
 
-
 SELECT *
 FROM doctor
 WHERE dName = '홍길동';
+
 
 -- 2. 이수지 간호사는 대학원 진학으로 오늘까지만 근무하고 퇴사.
 -- 해당 정보에 대한 테이블 정보를 변경하시오.
@@ -207,10 +207,12 @@ SELECT *
 FROM nurse
 WHERE nName = '이수지';
 
+
 -- 3. 담당진료과목이 '소아과' 의사에 대한 정보를 출력하시오.
 SELECT *
 FROM doctor
 WHERE dCharge = '소아과';
+
 
 -- 4. 홍길동 의사에게 진료 받은 환자에 대한 정보를 출력하시오.
 SELECT DISTINCT p.*
@@ -219,8 +221,13 @@ FROM patient p
          JOIN doctor d ON mt.dID = d.dID
 WHERE d.dName = '홍길동';
 
+select p.*
+from patient p,
+     doctor d
+where p.dID = d.dID and d.dname = '홍길동';
+
 -- 5. 진료날짜가 2023년 11월에서 2023년 12월에 진료받은 환자에 대한 모든 정보를 오름차순 정렬하여 출력
-SELECT p.*, mt.mtDate, mt.mtDetail -- 환자 정보, 진료 정보
+SELECT p.*, mt.mtDate, mt.mtDetail -- 환자 정보, 진료 날짜, 진료 내용
 FROM patient p
          JOIN medicalTreatment mt ON p.pID = mt.pID
 WHERE mt.mtDate BETWEEN '2023-11-01' AND '2023-12-31'
